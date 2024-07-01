@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type apiConfig struct {
@@ -18,11 +19,7 @@ type apiConfig struct {
 }
 
 func main() {
-	feed, err := urlToFeed("https://wagslane.dev/index.xml")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(feed)
+	// Load the environment variables
 	loadEnvErr := godotenv.Load(".env")
 	if loadEnvErr != nil {
 		log.Fatalln("Error loading .env file")
@@ -43,9 +40,11 @@ func main() {
 		log.Fatal("Error opening database connection: ", err)
 	}
 
+	db := database.New(conn)
 	apiCfg := apiConfig{
-		DB: database.New(conn),
+		DB: db,
 	}
+	go startScraping(db, 5, time.Second*2)
 	// Create a new router and set up the routes
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
